@@ -285,6 +285,41 @@ img { max-width: 100%; display: block; }
   box-shadow: 2px 2px 0 var(--ink);
 }
 
+/* Bundle cards — same card shell as a Special Deal, but a photo grid of every item
+   instead of one big photo, and a list of per-item links instead of one listing link. */
+
+.bundle-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.bundle-photo {
+  aspect-ratio: 1;
+  object-fit: cover;
+  width: 100%;
+  display: block;
+}
+
+.bundle-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.4rem 0;
+}
+
+.bundle-item-link {
+  font-family: var(--font-tag);
+  font-size: 0.82rem;
+  color: var(--teal);
+  text-decoration: underline;
+}
+
+.bundle-item-link:hover {
+  color: var(--rust);
+}
+
 /* Shop section */
 
 .shop {

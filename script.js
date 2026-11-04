@@ -100,3 +100,83 @@ document.getElementById('year').textContent = new Date().getFullYear();
       console.error('Could not load Special Deals:', err.message);
     });
 })();
+
+// ─── Bundles ─────────────────────────────────────────────────────────────
+//
+// Same live-query, no-caching shape as Special Deals above, pulling from a different
+// Supabase VIEW (public_bundle_deals — see supabase_bundles.sql in the Donny's Deals
+// repo). A bundle has no eBay listing of its own: Donny picks the items and sets the
+// combined price himself in the app, and buying it means clicking through to each
+// item's own real eBay listing below — there's no single "buy the bundle" checkout.
+(function () {
+  var SUPABASE_URL = 'https://wcndfbsdtfehjvgeaerl.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_Q8mnIjf31TOfv4wYFwsBgg_qGoUGHMP';
+
+  var section = document.getElementById('bundles');
+  var grid = document.getElementById('bundles-grid');
+  if (!section || !grid) return;
+
+  function money(value) {
+    var n = parseFloat(value);
+    return isFinite(n) ? '$' + n.toFixed(2) : null;
+  }
+
+  function card(bundle) {
+    var article = document.createElement('article');
+    article.className = 'deal-card';
+
+    var bundleItems = Array.isArray(bundle.items) ? bundle.items : [];
+    var photosHtml = bundleItems.slice(0, 6).map(function (it) {
+      return it.photo
+        ? '<img src="' + it.photo + '" alt="" class="bundle-photo">'
+        : '<div class="bundle-photo deal-photo-empty"></div>';
+    }).join('');
+
+    var price = money(bundle.price);
+
+    article.innerHTML =
+      '<div class="bundle-photos">' + photosHtml + '</div>' +
+      '<div class="deal-info">' +
+        '<span class="deal-availability">Bundle</span>' +
+        '<h3 class="deal-title"></h3>' +
+        (price ? '<p class="deal-price-row"><span class="deal-price"></span></p>' : '') +
+        '<div class="bundle-items-list"></div>' +
+      '</div>';
+
+    // Text content set via textContent, not interpolated into the HTML string above — same
+    // reasoning as Special Deals: a bundle name or item name Donny typed is still untrusted
+    // input once it reaches this public page.
+    article.querySelector('.deal-title').textContent = bundle.name || 'Bundle';
+    if (price) article.querySelector('.deal-price').textContent = price + ' for all ' + bundleItems.length;
+
+    var list = article.querySelector('.bundle-items-list');
+    bundleItems.forEach(function (it) {
+      if (!it.ebay_item_id) return;
+      var a = document.createElement('a');
+      a.className = 'bundle-item-link';
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.href = 'https://www.ebay.com/itm/' + encodeURIComponent(it.ebay_item_id);
+      a.textContent = (it.name || 'Item') + ' →';
+      list.appendChild(a);
+    });
+
+    return article;
+  }
+
+  fetch(SUPABASE_URL + '/rest/v1/public_bundle_deals?select=*', {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+    },
+  })
+    .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('Supabase returned ' + res.status)); })
+    .then(function (bundles) {
+      if (!Array.isArray(bundles) || bundles.length === 0) return; // section stays hidden
+      bundles.forEach(function (bundle) { grid.appendChild(card(bundle)); });
+      section.hidden = false;
+    })
+    .catch(function (err) {
+      console.error('Could not load Bundles:', err.message);
+    });
+})();
